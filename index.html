@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SD Prompt Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans JP',-apple-system,BlinkMacSystemFont,sans-serif;background:#333;color:#fff;min-height:100vh;font-size:14px}
+.app{max-width:900px;margin:0 auto;padding:24px 16px}
+h1{font-size:20px;font-weight:600;color:#7ab8ff;margin-bottom:4px}
+.subtitle{font-size:12px;color:#999;margin-bottom:24px}
+.tab-bar{display:flex;gap:0;border-bottom:1px solid #4a4a4a;margin-bottom:20px;flex-wrap:wrap}
+.tab{padding:9px 18px;font-size:13px;font-weight:500;color:#999;cursor:pointer;border-bottom:2px solid transparent;background:none;border-top:none;border-left:none;border-right:none;transition:all .15s;font-family:inherit}
+.tab.active{color:#7ab8ff;border-bottom-color:#3a8fff}
+.tab:hover:not(.active){color:#ccc}
+.panel{display:none}.panel.active{display:block}
+.section{margin-bottom:18px}
+.section-label{font-size:11px;font-weight:600;color:#999;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.chip-group{display:flex;flex-wrap:wrap;gap:6px}
+.chip{padding:5px 13px;font-size:12px;border-radius:999px;border:1px solid #4a4a4a;background:#444;color:#ccc;cursor:pointer;transition:all .15s;user-select:none}
+.chip:hover{border-color:#3a8fff;color:#fff}
+.chip.active{background:#3a8fff;border-color:#3a8fff;color:#fff}
+.chip.multi.active{background:#1D9E75;border-color:#1D9E75;color:#fff}
+.divider{height:1px;background:#4a4a4a;margin:20px 0}
+.prompt-box{background:#2a2a2a;border:1px solid #4a4a4a;border-radius:10px;padding:14px 16px;font-family:'Courier New',monospace;font-size:12px;line-height:1.9;color:#fff;min-height:80px;word-break:break-word;white-space:pre-wrap}
+.neg-box{background:#2a2a2a;border:1px solid #4a4a4a;border-radius:10px;padding:14px 16px;font-family:'Courier New',monospace;font-size:12px;line-height:1.9;color:#f87171;min-height:50px;word-break:break-word;white-space:pre-wrap}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+button{cursor:pointer;border-radius:8px;font-family:inherit;font-size:13px;font-weight:500;transition:all .15s}
+.btn-primary{background:#3a8fff;color:#fff;border:none;padding:8px 18px}
+.btn-primary:hover{background:#2a7aee}
+.btn-primary:disabled{background:#3a4a5a;color:#666;cursor:not-allowed}
+.btn-secondary{background:#2a2a2a;color:#ccc;border:1px solid #4a4a4a;padding:8px 18px}
+.btn-secondary:hover{background:#3a3a3a;border-color:#3a8fff}
+.btn-danger{background:#2a2a2a;color:#f87171;border:1px solid #f87171;padding:8px 14px}
+.btn-danger:hover{background:#3a2020}
+.btn-green{background:#1D9E75;color:#fff;border:none;padding:8px 18px}
+.btn-green:hover{background:#188a65}
+.variation-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+@media(max-width:600px){.variation-grid{grid-template-columns:1fr}}
+.variation-card{background:#2a2a2a;border:1px solid #4a4a4a;border-radius:8px;padding:10px 12px;font-family:'Courier New',monospace;font-size:11px;line-height:1.6;color:#fff;cursor:pointer;position:relative;transition:all .15s}
+.variation-card:hover{border-color:#3a8fff;background:#2e3a4a}
+.variation-num{font-size:10px;font-weight:600;color:#3a8fff;margin-bottom:4px}
+.copy-hint{position:absolute;top:6px;right:8px;font-size:10px;color:#999;opacity:0;transition:opacity .15s}
+.variation-card:hover .copy-hint{opacity:1}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600}
+.badge-purple{background:#1a2a4a;color:#7ab8ff}
+.badge-green{background:#0f3a2a;color:#4ade80}
+.weight-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.weight-label{font-size:12px;color:#999;min-width:90px}
+input[type=range]{flex:1;accent-color:#3a8fff}
+.weight-val{font-size:12px;font-weight:600;min-width:30px;text-align:right;color:#7ab8ff}
+input[type=text],textarea,input[type=password]{width:100%;padding:9px 12px;font-size:13px;border:1px solid #4a4a4a;border-radius:8px;background:#2a2a2a;color:#fff;font-family:inherit;outline:none;transition:border .15s}
+input[type=text]:focus,textarea:focus,input[type=password]:focus{border-color:#3a8fff}
+.ai-output{background:#0f1f18;border:1px solid #1D9E75;border-radius:10px;padding:14px 16px;font-family:'Courier New',monospace;font-size:12px;line-height:1.9;color:#4ade80;min-height:60px;word-break:break-word;white-space:pre-wrap;display:none}
+.ai-output.visible{display:block}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:24px;right:24px;background:#1D9E75;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:500;opacity:0;transition:opacity .3s;pointer-events:none;z-index:9999}
+.toast.show{opacity:1}
+.settings-box{background:#2a2a2a;border:1px solid #4a4a4a;border-radius:10px;padding:16px}
+.settings-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.settings-row:last-child{margin-bottom:0}
+.settings-label{font-size:12px;color:#999;min-width:120px}
+.key-status{font-size:11px;padding:3px 10px;border-radius:999px}
+.key-ok{background:#0f3a2a;color:#4ade80}
+.key-ng{background:#3a2020;color:#f87171}
+.lib-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px}
+.lib-card{flex:1;background:#2a2a2a;border:1px solid #4a4a4a;border-radius:8px;padding:10px 12px}
+.lib-card-name{font-size:12px;font-weight:600;color:#7ab8ff;margin-bottom:3px}
+.lib-card-tags{font-family:'Courier New',monospace;font-size:11px;color:#999;word-break:break-all}
+.ai-section{background:#222;border:1px solid #2a5a8a;border-radius:10px;padding:16px;margin-bottom:18px}
+.ai-section-title{font-size:12px;font-weight:600;color:#3a8fff;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>⚡ SD Prompt Generator</h1>
+  <p class="subtitle">WAI-illustrious-SDXL / Danbooruタグ形式 対応</p>
+
+  <div class="tab-bar">
+    <button class="tab active" onclick="switchTab('builder')">ビルダー</button>
+    <button class="tab" onclick="switchTab('ai')">AI生成</button>
+    <button class="tab" onclick="switchTab('variations')">バリエーション</button>
+    <button class="tab" onclick="switchTab('library')">ライブラリ</button>
+    <button class="tab" onclick="switchTab('settings')">設定</button>
+  </div>
+
+  <!-- BUILDER -->
+  <div id="tab-builder" class="panel active">
+    <div class="section">
+      <div class="section-label">キャラクター</div>
+      <div class="chip-group">
+        <div class="chip" data-cat="char" data-val="1girl" onclick="toggleChip(this)">1girl</div>
+        <div class="chip" data-cat="char" data-val="1boy" onclick="toggleChip(this)">1boy</div>
+        <div class="chip" data-cat="char" data-val="2girls" onclick="toggleChip(this)">2girls</div>
+        <div class="chip" data-cat="char" data-val="solo" onclick="toggleChip(this)">solo</div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-label">髪色 <span class="badge badge-green" id="hair-count">0</span></div>
+      <div class="chip-group">
+        <div class="chip multi" data-cat="hair" data-val="blonde hair" onclick="toggleMulti(this)">blonde</div>
+        <div class="chip multi" data-cat="hair" data-val="black hair" onclick="toggleMulti(this)">black</div>
+        <div class="chip multi" data-cat="hair" data-val="brown hair" onclick="toggleMulti(this)">brown</div>
+        <div class="chip multi" data-cat="hair" data-val="silver hair" onclick="toggleMulti(this)">silver</div>
+        <div class="chip multi" data-cat="hair" data-val="pink hair" onclick="toggleMulti(this)">pink</div>
+        <div class="chip multi" data-cat="hair" data-val="blue hair" onclick="toggleMulti(this)">blue</div>
+        <div class="chip multi" data-cat="hair" data-val="red hair" onclick="toggleMulti(this)">red</div>
+        <div class="chip multi" data-cat="hair" data-val="white hair" onclick="toggleMulti(this)">white</div>
+        <div class="chip multi" data-cat="hair" data-val="purple hair" onclick="toggleMulti(this)">purple</div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-label">髪型</div>
+      <div class="chip-group">
+        <div class="chip" data-cat="hairstyle" data-val="long hair" onclick="toggleChip(this)">long</div>
+        <div class="chip" data-cat="hairstyle" data-val="short hair" onclick="toggleChip(this)">short</div>
+        <div class="chip" data-cat="hairstyle" data-val="twin tails" onclick="toggleChip(this)">twin tails</div>
+        <div class="chip" data-cat="hairstyle" data-val="ponytail" onclick="toggleChip(this)">ponytail</div>
+        <div class="chip" data-cat="hairstyle" data-val="bob cut" onclick="toggleChip(this)">bob cut</div>
+        <div class="chip" data-cat="hairstyle" data-val="ahoge" onclick="toggleChip(this)">ahoge</div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-label">瞳の色</div>
+      <div class="chip-group">
+        <div class="chip" data-cat="eyes" data-val="blue eyes" onclick="toggleChip(this)">blue</div>
+        <div class="chip" data-cat="eyes" data-val="red eyes" onclick="toggleChip(this)">red</div>
+        <div class="chip" data-cat="eyes" data-val="green eyes" onclick="toggleChip(this)">green</div>
+        <div class="chip" data-cat="eyes" data-val="purple eyes" onclick="toggleChip(this)">purple</div>
+        <div class="chip" data-cat="eyes" data-val="golden eyes" onclick="toggleChip(this)">golden</div>
+        <div class="chip" data-cat="eyes" data-val="heterochromia" onclick="toggleChip(this)">hetero</div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-label">服装</div>
+      <div class="chip-group">
+        <div class="chip" data-cat="outfit" data-val="school uniform" onclick="toggleChip(this)">制服</div>
+        <div class="chip" data-cat="outfit" data-val="casual clothes" onclick="toggleChip(this)">カジュアル</div>
+        <div class="chip" data-cat="outfit" data-val="maid" onclick="toggleChip(this)">メイド</div>
+        <div class="chip" data-cat="outfit" data-val="kimono" onclick="toggleChip(this)">着物</div>
+        <div class="chip" data-cat="outfit" data-val="swimsuit" onclick="toggleChip(this)">水着</div>
+        <div class="chip" data-cat="outfit" data-val="dress" onclick="toggleChip(this)">ドレス</div>
+        <div class="chip" data-cat="outfit" data-val="gym uniform" onclick="toggleChip(this)">体操服</div>
+        <div class="chip" data-cat="outfit" data-val="office lady" onclick="toggleChip(this)">OL</div>
+        <div class="chip" data-cat="outfit" data-val="nurse" onclick="toggleChip(this)">ナース</div>
+        <div class="chip" data-cat="outfit" data-val="hakama" onclick="toggleChip(this)">袴</div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-label">ポーズ・表情</div>
+      <div class="chip-group">
+        <div class="chip" data-cat="pose" data-val="standing" onclick="toggleChip(this)">standing</div>
+        <div class="chip" data-cat="pose" data-val="sitting" onclick="toggleChip(this)">sitting</div>
+        <div class="chip" data-cat="pose" data-val="lying" onclick="toggleChip(this)">lying</div>
+        <div class="chip" data-cat="pose" data-val="smile" onclick="toggleChip(this)">smile</div>
+        <div class="chip" data-cat="pose" data-val="blush" onclick="toggleChip(this)">blush</div>
+        <div class="chip" data-cat="pose" data-val="embarrassed" onclick="toggleChip(this)">embarrassed</div>
+        <div class="chip" data-cat="pose" data-val="looking at viewer" onclick="toggleChip(this)">looking at viewer</div>
+        <div class="chip" data-cat="pose" data-val="from above" onclick="toggleChip(this)">from above</div>
+        <div class="chip" data-cat="pose" data-val="from behind" onclick="toggleChip(this)">from behind</div>
+        <div class="chip" data-cat="pose" data-val="cowboy shot" onclick="toggleChip(this)">cowboy shot</div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-label">背景・シーン</div>
+      <div class="chip-group">
+        <div class="chip" data-cat="scene" data-val="white background" onclick="toggleChip(this)">白背景</div>
+        <div class="chip" data-cat="scene" data-val="simple background" onclick="toggleChip(this)">シンプル</div>
+        <div class="chip" data-cat="scene" data-val="bedroom" onclick="toggleChip(this)">寝室</div>
+        <div class="chip" data-cat="scene" data-val="classroom" onclick="toggleChip(this)">教室</div>
+        <div class="chip" data-cat="scene" data-val="outdoor" onclick="toggleChip(this)">屋外</div>
+        <div class="chip" data-cat="scene" data-val="beach" onclick="toggleChip(this)">ビーチ</div>
+        <div class="chip" data-cat="scene" data-val="street" onclick="toggleChip(this)">街中</div>
+        <div class="chip" data-cat="scene" data-val="night" onclick="toggleChip(this)">夜</div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-label">カスタムタグ</div>
+      <input type="text" id="custom-tags" placeholder="例: large breasts, thighhighs, bare shoulders" oninput="buildPrompt()">
+    </div>
+    <div class="section">
+      <div class="section-label">品質タグ強度</div>
+      <div class="weight-row">
+        <span class="weight-label">masterpiece</span>
+        <input type="range" min="10" max="15" value="12" step="1" id="w-master" oninput="updateWeight('w-master','wv-master')">
+        <span class="weight-val" id="wv-master">1.2</span>
+      </div>
+      <div class="weight-row">
+        <span class="weight-label">best quality</span>
+        <input type="range" min="10" max="15" value="11" step="1" id="w-quality" oninput="updateWeight('w-quality','wv-quality')">
+        <span class="weight-val" id="wv-quality">1.1</span>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="section">
+      <div class="section-label" style="justify-content:space-between"><span>生成プロンプト</span><span id="tag-count-label" style="font-size:11px;color:#999"></span></div>
+      <div class="prompt-box" id="prompt-output">← 上でタグを選択してください</div>
+      <div class="btn-row">
+        <button class="btn-primary" onclick="copyPrompt()">📋 コピー</button>
+        <button class="btn-secondary" onclick="saveToLib()">💾 ライブラリに保存</button>
+        <button class="btn-secondary" onclick="resetAll()">🔄 リセット</button>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-label">ネガティブプロンプト</div>
+      <div class="neg-box" id="neg-output">worst quality, low quality, bad anatomy, bad hands, extra fingers, missing fingers, blurry, cropped, jpeg artifacts, watermark, text, signature, deformed</div>
+      <div class="btn-row">
+        <button class="btn-secondary" onclick="copyNeg()">📋 ネガをコピー</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI生成 -->
+  <div id="tab-ai" class="panel">
+    <div class="ai-section">
+      <div class="ai-section-title">✨ Claude AIでプロンプト自動生成</div>
+      <div class="section">
+        <div class="section-label">日本語で概念を入力</div>
+        <textarea id="ai-concept" rows="3" placeholder="例：清楚系の黒髪ロングの女子高生が放課後の教室で窓際に座っている。制服姿で少し恥ずかしそうにこちらを見ている。"></textarea>
+      </div>
+      <div class="section">
+        <div class="section-label">生成モード</div>
+        <div class="chip-group">
+          <div class="chip active" data-mode="normal" onclick="selectMode(this)">標準</div>
+          <div class="chip" data-mode="detailed" onclick="selectMode(this)">詳細（多タグ）</div>
+          <div class="chip" data-mode="variations" onclick="selectMode(this)">3バリエーション</div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-primary" id="ai-gen-btn" onclick="generateWithAI()">✨ AI生成</button>
+      </div>
+      <div style="margin-top:14px">
+        <div class="section-label">AI出力結果</div>
+        <div class="ai-output" id="ai-output"></div>
+        <div class="btn-row" id="ai-action-btns" style="display:none">
+          <button class="btn-green" onclick="copyAIOutput()">📋 コピー</button>
+          <button class="btn-secondary" onclick="sendToBuilder()">→ ビルダーに送る</button>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:12px;color:#6b6880;padding:8px 0">
+      ※ APIキーは「設定」タブで入力・保存できます。キーはブラウザのlocalStorageに保存されます。
+    </div>
+  </div>
+
+  <!-- VARIATIONS -->
+  <div id="tab-variations" class="panel">
+    <div class="section">
+      <div class="section-label">ベースプロンプト（固定部分）</div>
+      <textarea id="base-prompt" rows="3" placeholder="例: 1girl, school uniform, smile, looking at viewer, masterpiece, best quality"></textarea>
+    </div>
+    <div class="section">
+      <div class="section-label">バリエーション軸1（必須）</div>
+      <input type="text" id="var-axis1" placeholder="blonde hair, black hair, silver hair, pink hair">
+    </div>
+    <div class="section">
+      <div class="section-label">バリエーション軸2（空欄可）</div>
+      <input type="text" id="var-axis2" placeholder="school uniform, maid, swimsuit">
+    </div>
+    <div class="btn-row">
+      <button class="btn-primary" onclick="generateVariations()">▶ 生成</button>
+      <button class="btn-secondary" onclick="exportVariationsCSV()">⬇ CSV出力</button>
+      <button class="btn-secondary" onclick="exportVariationsTXT()">⬇ TXT出力</button>
+    </div>
+    <div id="var-count-label" style="font-size:12px;color:#6b6880;margin-top:10px"></div>
+    <div class="variation-grid" id="variation-grid"></div>
+  </div>
+
+  <!-- LIBRARY -->
+  <div id="tab-library" class="panel">
+    <div class="section">
+      <div class="section-label">保存済みプロンプト <span class="badge badge-purple" id="saved-count">0</span></div>
+      <div id="saved-list"></div>
+    </div>
+    <div class="divider"></div>
+    <div class="section">
+      <div class="section-label">品質タグセット</div>
+      <div id="lib-quality-list"></div>
+      <div class="btn-row" style="margin-top:8px"><button class="btn-secondary" onclick="addLibItem('quality')">＋ 追加</button></div>
+    </div>
+    <div class="divider"></div>
+    <div class="section">
+      <div class="section-label">ネガティブセット</div>
+      <div id="lib-negative-list"></div>
+      <div class="btn-row" style="margin-top:8px"><button class="btn-secondary" onclick="addLibItem('negative')">＋ 追加</button></div>
+    </div>
+    <div class="divider"></div>
+    <div class="section">
+      <div class="section-label">LoRAスニペット</div>
+      <div id="lib-lora-list"></div>
+      <div class="btn-row" style="margin-top:8px"><button class="btn-secondary" onclick="addLibItem('lora')">＋ 追加</button></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="tab-settings" class="panel">
+    <div class="settings-box">
+      <div class="section-label" style="margin-bottom:14px">Claude API設定</div>
+      <div class="settings-row">
+        <span class="settings-label">APIキー</span>
+        <input type="password" id="api-key-input" placeholder="sk-ant-..." style="flex:1">
+        <span class="key-status" id="key-status">未設定</span>
+      </div>
+      <div class="btn-row">
+        <button class="btn-primary" onclick="saveApiKey()">保存</button>
+        <button class="btn-danger" onclick="clearApiKey()">削除</button>
+      </div>
+      <p style="font-size:11px;color:#6b6880;margin-top:12px">キーはブラウザのlocalStorageに保存されます。このPCのブラウザ内にのみ保存されます。</p>
+    </div>
+    <div class="divider"></div>
+    <div class="settings-box" style="margin-top:16px">
+      <div class="section-label" style="margin-bottom:14px">デフォルト品質タグ</div>
+      <textarea id="default-quality" rows="3" placeholder="masterpiece, best quality, ultra-detailed"></textarea>
+      <div class="btn-row" style="margin-top:8px"><button class="btn-secondary" onclick="saveDefaultQuality()">保存</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const state = {char:null,hair:[],hairstyle:null,eyes:null,outfit:null,pose:null,scene:null,weights:{master:1.2,quality:1.1}};
+const library = {
+  quality:[
+    {name:'WAI高品質',tags:'masterpiece, best quality, ultra-detailed, highres, 8k uhd'},
+    {name:'標準品質',tags:'masterpiece, best quality, detailed'},
+  ],
+  negative:[
+    {name:'標準ネガ',tags:'worst quality, low quality, bad anatomy, bad hands, extra fingers, missing fingers, blurry, cropped, jpeg artifacts, watermark, text, signature, deformed'},
+    {name:'強化ネガ',tags:'worst quality, low quality, bad anatomy, bad hands, extra fingers, missing fingers, blurry, cropped, jpeg artifacts, watermark, text, signature, deformed, nsfw, lowres, error, ugly, duplicate'},
+  ],
+  lora:[
+    {name:'IP-Adapter FaceID',tags:'<lora:ip-adapter-faceid-plusv2_sdxl_lora:0.65>'},
+  ]
+};
+let savedPrompts = JSON.parse(localStorage.getItem('sd_saved') || '[]');
+let aiMode = 'normal';
+
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach((t,i)=>{
+    const tabs=['builder','ai','variations','library','settings'];
+    t.classList.toggle('active',tabs[i]===name);
+  });
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if(name==='library') renderLibrary();
+  if(name==='settings') loadSettings();
+}
+
+function toggleChip(el){
+  const cat=el.dataset.cat,val=el.dataset.val;
+  const siblings=el.parentElement.querySelectorAll('.chip');
+  const was=el.classList.contains('active');
+  siblings.forEach(s=>s.classList.remove('active'));
+  if(!was){el.classList.add('active');state[cat]=val;}
+  else{state[cat]=null;}
+  buildPrompt();
+}
+
+function toggleMulti(el){
+  const cat=el.dataset.cat,val=el.dataset.val;
+  el.classList.toggle('active');
+  if(el.classList.contains('active')) state[cat].push(val);
+  else state[cat]=state[cat].filter(v=>v!==val);
+  document.getElementById('hair-count').textContent=state.hair.length;
+  buildPrompt();
+}
+
+function updateWeight(sid,vid){
+  const w=(parseInt(document.getElementById(sid).value)/10).toFixed(1);
+  document.getElementById(vid).textContent=w;
+  if(sid==='w-master') state.weights.master=parseFloat(w);
+  else state.weights.quality=parseFloat(w);
+  buildPrompt();
+}
+
+function buildPrompt(){
+  const parts=[];
+  const mw=state.weights.master,qw=state.weights.quality;
+  parts.push(mw===1.0?'masterpiece':`(masterpiece:${mw.toFixed(1)})`);
+  parts.push(qw===1.0?'best quality':`(best quality:${qw.toFixed(1)})`);
+  parts.push('ultra-detailed');
+  if(state.char) parts.push(state.char);
+  if(state.hair.length>0) state.hair.forEach(h=>parts.push(h));
+  if(state.hairstyle) parts.push(state.hairstyle);
+  if(state.eyes) parts.push(state.eyes);
+  if(state.outfit) parts.push(state.outfit);
+  if(state.pose) parts.push(state.pose);
+  if(state.scene) parts.push(state.scene);
+  const custom=document.getElementById('custom-tags').value.trim();
+  if(custom) custom.split(',').map(t=>t.trim()).filter(Boolean).forEach(t=>parts.push(t));
+  const prompt=parts.join(', ');
+  document.getElementById('prompt-output').textContent=prompt||'← 上でタグを選択してください';
+  document.getElementById('tag-count-label').textContent=parts.length+' tags';
+  return prompt;
+}
+
+function copyPrompt(){
+  const t=document.getElementById('prompt-output').textContent;
+  navigator.clipboard.writeText(t).then(()=>showToast('プロンプトをコピーしました'));
+}
+
+function copyNeg(){
+  const t=document.getElementById('neg-output').textContent;
+  navigator.clipboard.writeText(t).then(()=>showToast('ネガをコピーしました'));
+}
+
+function saveToLib(){
+  const p=document.getElementById('prompt-output').textContent;
+  if(!p||p.includes('←')) return;
+  const name=prompt('保存名:');
+  if(!name) return;
+  savedPrompts.push({name,tags:p,date:new Date().toLocaleDateString('ja-JP')});
+  localStorage.setItem('sd_saved',JSON.stringify(savedPrompts));
+  showToast('ライブラリに保存しました');
+}
+
+function resetAll(){
+  state.char=null;state.hair=[];state.hairstyle=null;state.eyes=null;state.outfit=null;state.pose=null;state.scene=null;
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+  document.getElementById('custom-tags').value='';
+  document.getElementById('hair-count').textContent='0';
+  buildPrompt();
+}
+
+function selectMode(el){
+  document.querySelectorAll('[data-mode]').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  aiMode=el.dataset.mode;
+}
+
+async function generateWithAI(){
+  const apiKey=localStorage.getItem('sd_api_key');
+  if(!apiKey){showToast('APIキーを設定タブで入力してください');return;}
+  const concept=document.getElementById('ai-concept').value.trim();
+  if(!concept){showToast('概念を入力してください');return;}
+  const btn=document.getElementById('ai-gen-btn');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spinner"></span>生成中...';
+  const out=document.getElementById('ai-output');
+  out.classList.add('visible');
+  out.textContent='生成中...';
+  document.getElementById('ai-action-btns').style.display='none';
+  let sysPrompt='';
+  if(aiMode==='normal'){
+    sysPrompt='あなたはStable Diffusion（SDXLモデル WAI-illustrious）のプロンプトエンジニアです。ユーザーの日本語による説明をDanbooruタグ形式の英語プロンプトに変換してください。品質タグ（masterpiece, best quality, ultra-detailed）から始め、キャラクター・衣装・ポーズ・シーンの順にタグを並べてください。カンマ区切りで出力し、説明文は不要です。プロンプトのみ出力してください。';
+  } else if(aiMode==='detailed'){
+    sysPrompt='あなたはStable Diffusion（SDXLモデル WAI-illustrious）のプロンプトエンジニアです。ユーザーの日本語による説明を詳細なDanbooruタグ形式の英語プロンプトに変換してください。できるだけ多くの具体的なタグを使い、品質タグ・キャラクター・体型・衣装の詳細・表情・ポーズ・シーン・照明・アングルまで網羅してください。カンマ区切りで出力し、プロンプトのみ出力してください。';
+  } else {
+    sysPrompt='あなたはStable Diffusion（SDXLモデル WAI-illustrious）のプロンプトエンジニアです。ユーザーの日本語による説明を元に、Danbooruタグ形式の英語プロンプトを3パターン生成してください。各パターンは髪色・服装・シーンなどが異なるバリエーションにしてください。\n形式：\n[1] プロンプト1\n[2] プロンプト2\n[3] プロンプト3\nプロンプトのみ出力してください。';
+  }
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:1000,system:sysPrompt,messages:[{role:'user',content:concept}]})
+    });
+    const data=await res.json();
+    if(data.error){out.textContent='エラー: '+data.error.message;}
+    else{
+      const text=data.content[0].text;
+      out.textContent=text;
+      document.getElementById('ai-action-btns').style.display='flex';
+    }
+  } catch(e){
+    out.textContent='通信エラー: '+e.message;
+  }
+  btn.disabled=false;
+  btn.innerHTML='✨ AI生成';
+}
+
+function copyAIOutput(){
+  const t=document.getElementById('ai-output').textContent;
+  navigator.clipboard.writeText(t).then(()=>showToast('コピーしました'));
+}
+
+function sendToBuilder(){
+  const t=document.getElementById('ai-output').textContent;
+  document.getElementById('custom-tags').value=t;
+  switchTab('builder');
+  buildPrompt();
+  showToast('ビルダーに送りました');
+}
+
+function generateVariations(){
+  const base=document.getElementById('base-prompt').value.trim();
+  const axis1Raw=document.getElementById('var-axis1').value.trim();
+  const axis2Raw=document.getElementById('var-axis2').value.trim();
+  if(!base||!axis1Raw){showToast('ベースと軸1を入力してください');return;}
+  const axis1=axis1Raw.split(',').map(t=>t.trim()).filter(Boolean);
+  const axis2=axis2Raw?axis2Raw.split(',').map(t=>t.trim()).filter(Boolean):[''];
+  const grid=document.getElementById('variation-grid');
+  grid.innerHTML='';
+  const all=[];
+  axis1.forEach(a1=>axis2.forEach(a2=>{
+    const parts=[base,a1];if(a2)parts.push(a2);
+    all.push(parts.join(', '));
+  }));
+  document.getElementById('var-count-label').textContent=all.length+' パターン生成';
+  all.forEach((p,i)=>{
+    const card=document.createElement('div');
+    card.className='variation-card';
+    card.innerHTML=`<div class="variation-num">No.${i+1}</div><span class="copy-hint">クリックでコピー</span>${esc(p)}`;
+    card.onclick=()=>navigator.clipboard.writeText(p).then(()=>showToast('No.'+(i+1)+' コピーしました'));
+    grid.appendChild(card);
+  });
+}
+
+function exportVariationsCSV(){
+  const cards=document.querySelectorAll('.variation-card');
+  if(!cards.length){showToast('先に生成してください');return;}
+  const rows=['No.,Prompt'];
+  cards.forEach((c,i)=>{
+    const text=c.textContent.replace(/No\.\d+|クリックでコピー/g,'').trim();
+    rows.push(`${i+1},"${text.replace(/"/g,'""')}"`);
+  });
+  download('sd_prompts.csv',rows.join('\n'),'text/csv');
+}
+
+function exportVariationsTXT(){
+  const cards=document.querySelectorAll('.variation-card');
+  if(!cards.length){showToast('先に生成してください');return;}
+  const rows=[];
+  cards.forEach((c,i)=>{
+    const text=c.textContent.replace(/No\.\d+|クリックでコピー/g,'').trim();
+    rows.push(text);
+  });
+  download('sd_prompts.txt',rows.join('\n'),'text/plain');
+}
+
+function download(filename,content,type){
+  const blob=new Blob([content],{type});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=filename;a.click();
+}
+
+function renderLibrary(){
+  const savedEl=document.getElementById('saved-list');
+  document.getElementById('saved-count').textContent=savedPrompts.length;
+  if(savedPrompts.length===0){savedEl.innerHTML='<p style="font-size:12px;color:#6b6880">まだ保存されていません</p>';}
+  else{
+    savedEl.innerHTML='';
+    savedPrompts.forEach((item,idx)=>{
+      const row=document.createElement('div');
+      row.className='lib-row';
+      row.innerHTML=`<div class="lib-card"><div class="lib-card-name">${esc(item.name)} <span style="font-size:10px;color:#6b6880">${item.date||''}</span></div><div class="lib-card-tags">${esc(item.tags)}</div></div><button class="btn-secondary" style="padding:6px 10px" onclick="copySaved(${idx})">📋</button><button class="btn-danger" style="padding:6px 10px" onclick="deleteSaved(${idx})">🗑</button>`;
+      savedEl.appendChild(row);
+    });
+  }
+  ['quality','negative','lora'].forEach(type=>{
+    const el=document.getElementById('lib-'+type+'-list');
+    el.innerHTML='';
+    library[type].forEach((item,idx)=>{
+      const row=document.createElement('div');
+      row.className='lib-row';
+      row.innerHTML=`<div class="lib-card"><div class="lib-card-name">${esc(item.name)}</div><div class="lib-card-tags">${esc(item.tags)}</div></div><button class="btn-secondary" style="padding:6px 10px" onclick="copyLib('${type}',${idx})">📋</button><button class="btn-danger" style="padding:6px 10px" onclick="deleteLib('${type}',${idx})">🗑</button>`;
+      el.appendChild(row);
+    });
+  });
+}
+
+function copySaved(idx){navigator.clipboard.writeText(savedPrompts[idx].tags).then(()=>showToast('コピーしました'));}
+function deleteSaved(idx){if(confirm('削除しますか？')){savedPrompts.splice(idx,1);localStorage.setItem('sd_saved',JSON.stringify(savedPrompts));renderLibrary();}}
+function copyLib(type,idx){navigator.clipboard.writeText(library[type][idx].tags).then(()=>showToast('コピーしました'));}
+function deleteLib(type,idx){library[type].splice(idx,1);renderLibrary();}
+function addLibItem(type){
+  const name=prompt('プリセット名:');if(!name)return;
+  const tags=prompt('タグ（カンマ区切り）:');if(!tags)return;
+  library[type].push({name,tags});renderLibrary();
+}
+
+function saveApiKey(){
+  const k=document.getElementById('api-key-input').value.trim();
+  if(!k){showToast('キーを入力してください');return;}
+  localStorage.setItem('sd_api_key',k);
+  updateKeyStatus();
+  showToast('APIキーを保存しました');
+}
+
+function clearApiKey(){
+  if(!confirm('APIキーを削除しますか？'))return;
+  localStorage.removeItem('sd_api_key');
+  document.getElementById('api-key-input').value='';
+  updateKeyStatus();
+  showToast('削除しました');
+}
+
+function updateKeyStatus(){
+  const k=localStorage.getItem('sd_api_key');
+  const el=document.getElementById('key-status');
+  if(k){el.textContent='設定済み';el.className='key-status key-ok';}
+  else{el.textContent='未設定';el.className='key-status key-ng';}
+}
+
+function loadSettings(){
+  updateKeyStatus();
+  const k=localStorage.getItem('sd_api_key');
+  if(k) document.getElementById('api-key-input').value=k;
+  const dq=localStorage.getItem('sd_default_quality');
+  if(dq) document.getElementById('default-quality').value=dq;
+}
+
+function saveDefaultQuality(){
+  const v=document.getElementById('default-quality').value.trim();
+  localStorage.setItem('sd_default_quality',v);
+  showToast('保存しました');
+}
+
+function esc(str){return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+buildPrompt();
+</script>
+</body>
+</html>
